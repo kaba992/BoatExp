@@ -2,8 +2,31 @@ import * as THREE from 'three'
 import Experience from '../Experience.js'
 import { Water } from 'three/examples/jsm/objects/Water.js'
 import { Sky } from 'three/examples/jsm/objects/Sky.js'
-import { Vector3 } from 'three'
 import * as dat from 'lil-gui'
+import System, {
+  Emitter,
+  Rate,
+  Span,
+  Position,
+  Mass,
+  Radius,
+  Life,
+  PointZone,
+  LineZone,
+  Vector3D,
+  Alpha,
+  Scale,
+  Color,
+  Body,
+  RadialVelocity,
+  MeshRenderer,
+  SpriteRenderer,
+  BodySprite,
+  Debug,
+  Gravity
+} from "three-nebula";
+
+
 // import fragmentShader from '/static/shaders/fragment.glsl'
 // import vertexShader from '/static/shaders/fragment.glsl'
 
@@ -23,6 +46,9 @@ export default class SkyWater {
       elevation: 2,
       azimuth: 180
     }
+    this.ctha = 0;
+    this.r = 500;
+    this.tha = 0;
 
     this.setWater()
     this.setParticles()
@@ -43,10 +69,10 @@ export default class SkyWater {
   }
 
   setWater() {
-    const color = new THREE.Color("#262837");  // white
-    const near = 1;
-    const far = 300;
-    this.scene.fog = new THREE.Fog(color, near, far);
+    // const color = new THREE.Color("#262837");  // white
+    // const near = 1;
+    // const far = 300;
+    // this.scene.fog = new THREE.Fog(color, near, far);
     console.log(this.scene.fog);
     const waterGeometry = new THREE.PlaneGeometry(1000, 1000);
     this.water = new Water(
@@ -63,7 +89,7 @@ export default class SkyWater {
         sunColor: 0xffffff,
         waterColor: 0x000000,
         distortionScale: 1.5,
-        fog: this.scene.fog
+        // fog: this.scene.fog
       }
 
     );
@@ -218,13 +244,18 @@ void main() {
     `
     const fragmentShader = `
     varying vec3 vNormal;
+    uniform float uColorFrequency;
+    uniform vec3 uColor1;
+    uniform vec3 uColor2;
+    uniform float uColorOffset;
 
 
 
     void main() {
 
-
-      gl_FragColor = vec4(vNormal, 1.0);
+      float mixStrength = (vNormal.y + uColorOffset) * uColorFrequency;
+      vec3 color = mix(uColor1, uColor2, mixStrength);
+      gl_FragColor = vec4(color, 1.0);
     }
 
     `
@@ -256,6 +287,10 @@ void main() {
 
         uSpeed: { value: settings.speed },
         uNoiseDensity: { value: settings.density },
+        uColorFrequency: { value: 0 },
+        uColor1: { value: new THREE.Color('red') },
+        uColor2: { value: new THREE.Color('yellow') },
+        uColorOffset: { value: 0.08 },
 
 
       },
@@ -265,7 +300,7 @@ void main() {
 
 
     this.sphere = new THREE.Mesh(geometry, SphereMaterial);
-    this.sphere.position.set(0, 5, -15);
+    this.sphere.position.set(0, 5, 180);
     this.sphere.scale.set(3.5, 3.5, 3.5);
     this.sphere.castShadow = true;
     this.scene.add(this.sphere);
@@ -280,7 +315,7 @@ void main() {
     this.camera.add(listener);
     const sound = new THREE.Audio(listener);
     const audioLoader = new THREE.AudioLoader();
-    audioLoader.load('../sounds/10ans.mp3', function (buffer) {
+    audioLoader.load('../sounds/seyar.mp3', function (buffer) {
       sound.setBuffer(buffer);
       sound.setLoop(true);
       sound.setVolume(0.5);
@@ -313,77 +348,107 @@ void main() {
 
   }
   setParticles() {
-    /**
- * Textures
- */
-    const textureLoader = new THREE.TextureLoader()
-    const particleTexture = textureLoader.load('../textures/spark_05_rotated.png')
+    this.system = new System();
+    this.emitter = new Emitter();
+    this.emitter2 = new Emitter();
+    this.renderer = new SpriteRenderer(this.scene, THREE);
 
-    /**
-     * Particles
-     */
-    // Geometry
-    this.particlesGeometry = new THREE.BufferGeometry()
-    this.count = 60000
-
-    const positions = new Float32Array(this.count * 3)
-    const colors = new Float32Array(this.count * 3)
-
-    for (let i = 0; i < this.count * 3; i++) {
-      positions[i] = (Math.random() - 0.5) * 10
-      colors[i] = Math.random()
+    function createSprite1() {
+      const map = new THREE.TextureLoader().load("../textures/butterfly.png");
+      const material = new THREE.SpriteMaterial({
+        map: map,
+        color: 0xfffff,
+        blending: THREE.AdditiveBlending,
+        fog: true
+      });
+      return new THREE.Sprite(material);
     }
+    function createSprite2() {
+      const map = new THREE.TextureLoader().load("../textures/butterFly2.png");
+      const material = new THREE.SpriteMaterial({
+        map: map,
+        color: 0xfffff,
+        blending: THREE.AdditiveBlending,
+        fog: true
+      });
+      return new THREE.Sprite(material);
+    }
+    // three random color
+    const color = new THREE.Color("red");
 
-    this.particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    this.particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+    const color2 = new THREE.Color("yellow");
 
-    // Material
-    this.particlesMaterial = new THREE.PointsMaterial()
+    // Set emitter rate (particles per second) as well as the particle initializers and behaviours
+    this.emitter
+      .setRate(new Rate(new Span(4, 16), new Span(0.01)))
+      .setInitializers([
+        new Position(new PointZone(0, 0)),
+        new Mass(1),
+        new Radius(3, 6),
+        new Life(2),
+        new Body(createSprite1()),
+        new RadialVelocity(30, new Vector3D(0, 1, 0), 180),
+      ])
+      .setBehaviours([
+        new Alpha(1, 0),
+        new Scale(1, 2),
+        new Color(color),
+      ])
+      .emit();
+    this.emitter2
+      .setRate(new Rate(new Span(4, 16), new Span(0.01)))
+      .setInitializers([
+        new Position(new PointZone(0, 0)),
+        new Mass(1),
+        new Radius(3, 6),
+        new Life(2),
+        new Body(createSprite2()),
+        new RadialVelocity(30, new Vector3D(0, 1, 0), 180),
+      ])
+      .setBehaviours([
+        new Alpha(1, 0),
+        new Scale(1, 2),
+        new Color(color2),
+      ])
+      .emit();
 
-    this.particlesMaterial.size = 0.3
-    this.particlesMaterial.sizeAttenuation = true
-
-    this.particlesMaterial.color = new THREE.Color('#ff88cc')
-
-    this.particlesMaterial.transparent = true
-    this.particlesMaterial.alphaMap = particleTexture
-    // this.particlesMaterial.alphaTest = 0.01
-    // this.particlesMaterial.depthTest = false
-    this.particlesMaterial.depthWrite = false
-    this.particlesMaterial.blending = THREE.AdditiveBlending
-
-    this.particlesMaterial.vertexColors = true
-
-    // Points
-    this.particles = new THREE.Points(this.particlesGeometry, this.particlesMaterial)
-    // this.scene.add(this.particles)
+    // add the emitter and a renderer to your particle system
+    this.system
+      .addEmitter(this.emitter)
+      .addEmitter(this.emitter2)
+      .addRenderer(this.renderer)
 
   }
 
   update() {
     const clock = new THREE.Clock()
     const elapsedTime = clock.getElapsedTime()
+    const delta = clock.getDelta()
     this.water.material.uniforms['time'].value += 1.0 / 60.0;
     let data
     if (this.analyser && this.sphere) {
       data = this.analyser.getAverageFrequency()
       this.sphere.material.uniforms.uNoiseStrength.value = data / 256;
       this.sphere.material.uniforms.uTime.value = elapsedTime;
+      this.sphere.material.uniforms.uColorFrequency.value = data ;
     }
 
-    // Update particles
-    // for(let i = 0; i < this.count; i++)
-    // {
-    //     let i3 = i * 3
+    delta < 5 / 60 && this.system.update();
+    this.tha += Math.PI / 150;
+    let p = 100 * Math.sin(2 * this.tha);
+    this.emitter.position.x = 50 + p * Math.cos(this.tha);
+    this.emitter.position.y = p * Math.sin(this.tha);
+    this.emitter.position.z = (p * Math.tan(this.tha)) / 2;
+    // reverse emitter direction for emitter2
+    this.emitter2.position.x = -100 + -p * Math.cos(this.tha);
+    this.emitter2.position.y = -p * Math.sin(this.tha);
+    this.emitter2.position.z = -(p * Math.tan(this.tha)) / 2;
+    this.ctha += 0.016;
+    // this.r = 300
+    // set de emitter rate depending on the data
+    this.emitter.setRate(new Rate(new Span(0, data / 10), new Span(0.01)))
+    this.emitter2.setRate(new Rate(new Span(0, data / 10), new Span(0.01)))
 
-    //     const x = this.particlesGeometry.attributes.position.array[i3]
-
-    //     this.particlesGeometry.attributes.position.array[i3 + 0] = Math.sin(elapsedTime + x)
-
-
-
-    // }
-    // this.particlesGeometry.attributes.position.needsUpdate = true
 
   }
 }
