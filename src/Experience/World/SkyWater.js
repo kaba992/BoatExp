@@ -82,7 +82,7 @@ export default class SkyWater {
   }
 
   setWater() {
-    const texture = new THREE.TextureLoader().load("../textures/stars.jpg");
+    const texture = new THREE.TextureLoader().load("../textures/star2.jpg");
     // texture.wrapS = THREE.RepeatWrapping;
     // texture.wrapT = THREE.RepeatWrapping;
     // texture.repeat.set(4, 4);
@@ -319,7 +319,7 @@ void main() {
     this.camera.add(listener);
     const sound = new THREE.Audio(listener);
     const audioLoader = new THREE.AudioLoader();
-    audioLoader.load('../sounds/10ans.mp3', function (buffer) {
+    audioLoader.load('../sounds/ecrit.mp3', function (buffer) {
       sound.setBuffer(buffer);
       sound.setLoop(true);
       sound.setVolume(0.5);
