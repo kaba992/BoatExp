@@ -454,12 +454,13 @@ void main() {
       data = this.analyser.getAverageFrequency()
       this.sphere.material.uniforms.uNoiseStrength.value = data / 256;
       this.sphere.material.uniforms.uTime.value = elapsedTime;
+      this.sphere.scale.set(3.5 + data / 256, 3.5 + data / 256, 3.5 + data / 256);
 
     }
 
     delta < 5 / 60 && this.system.update();
     this.tha += Math.PI / 150;
-    let p = 100 * Math.sin(2 * this.tha);
+    let p = data * Math.sin(2 * this.tha);
     this.emitter.position.x = 100 + p * Math.cos(this.tha);
     this.emitter.position.y = p * Math.sin(this.tha);
     this.emitter.position.z = (p * Math.tan(this.tha)) / 2;
