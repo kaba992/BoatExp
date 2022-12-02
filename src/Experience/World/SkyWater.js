@@ -52,10 +52,23 @@ export default class SkyWater {
 
     this.setWater()
     this.setParticles()
+    // this.setPlane()
     // this.setSky()
     // this.updateSun()
     const app = document.querySelector('#app')
     const clickBtn = document.querySelector(".click");
+
+
+    const animationLoad = lottie.loadAnimation({
+      container: app, // the dom loading that will contain the animation
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      path: "https://assets6.lottiefiles.com/packages/lf20_OQFbEEEmHE.json", // the path to the animation json
+      preserveAspectRatio: 'xMidYMid meet',
+    });
+
+    animationLoad.play();
 
     clickBtn.addEventListener("click", () => {
       this.setSphere()
@@ -69,11 +82,11 @@ export default class SkyWater {
   }
 
   setWater() {
-    // const color = new THREE.Color("#262837");  // white
-    // const near = 1;
-    // const far = 300;
-    // this.scene.fog = new THREE.Fog(color, near, far);
-    console.log(this.scene.fog);
+    const texture = new THREE.TextureLoader().load("../textures/stars.jpg");
+    // texture.wrapS = THREE.RepeatWrapping;
+    // texture.wrapT = THREE.RepeatWrapping;
+    // texture.repeat.set(4, 4);
+    this.scene.background = texture;
     const waterGeometry = new THREE.PlaneGeometry(1000, 1000);
     this.water = new Water(
       waterGeometry,
@@ -244,18 +257,14 @@ void main() {
     `
     const fragmentShader = `
     varying vec3 vNormal;
-    uniform float uColorFrequency;
-    uniform vec3 uColor1;
-    uniform vec3 uColor2;
-    uniform float uColorOffset;
+
 
 
 
     void main() {
 
-      float mixStrength = (vNormal.y + uColorOffset) * uColorFrequency;
-      vec3 color = mix(uColor1, uColor2, mixStrength);
-      gl_FragColor = vec4(color, 1.0);
+
+      gl_FragColor = vec4(vNormal, 1.0);
     }
 
     `
@@ -287,12 +296,6 @@ void main() {
 
         uSpeed: { value: settings.speed },
         uNoiseDensity: { value: settings.density },
-        uColorFrequency: { value: 0 },
-        uColor1: { value: new THREE.Color('red') },
-        uColor2: { value: new THREE.Color('yellow') },
-        uColorOffset: { value: 0.08 },
-
-
       },
       wireframe: true,
 
@@ -308,6 +311,7 @@ void main() {
       this.sphere.material.wireframe = Math.random() > 0.5 ? true : false;
 
     }, 5000);
+
   }
 
   setAudio() {
@@ -315,7 +319,7 @@ void main() {
     this.camera.add(listener);
     const sound = new THREE.Audio(listener);
     const audioLoader = new THREE.AudioLoader();
-    audioLoader.load('../sounds/seyar.mp3', function (buffer) {
+    audioLoader.load('../sounds/10ans.mp3', function (buffer) {
       sound.setBuffer(buffer);
       sound.setLoop(true);
       sound.setVolume(0.5);
@@ -326,6 +330,24 @@ void main() {
     this.analyser = new THREE.AudioAnalyser(sound, 128);
 
     this.data = this.analyser
+
+
+
+  }
+  setPlane() {
+    const geometry = new THREE.PlaneGeometry(1000, 1000, 100, 100);
+    const material = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      side: THREE.DoubleSide,
+      wireframe: false,
+    });
+    this.plane = new THREE.Mesh(geometry, material);
+    this.plane.position.set(0, 0, 0);
+    this.plane.rotation.x =2* Math.PI /2 ;
+    this.plane.receiveShadow = true;
+    this.scene.add(this.plane);
+
+
 
   }
 
@@ -344,6 +366,8 @@ void main() {
     this.water.material.uniforms['sunDirection'].value.copy(this.sun).normalize();
 
     this.scene.environment = pmremGenerator.fromScene(this.sky).texture;
+
+
 
 
   }
@@ -380,14 +404,14 @@ void main() {
 
     // Set emitter rate (particles per second) as well as the particle initializers and behaviours
     this.emitter
-      .setRate(new Rate(new Span(4, 16), new Span(0.01)))
+      .setRate(new Rate(new Span(2, 8), new Span(0.01)))
       .setInitializers([
         new Position(new PointZone(0, 0)),
         new Mass(1),
         new Radius(3, 6),
         new Life(2),
         new Body(createSprite1()),
-        new RadialVelocity(30, new Vector3D(0, 1, 0), 180),
+        new RadialVelocity(40, new Vector3D(0, 1, 0), 180),
       ])
       .setBehaviours([
         new Alpha(1, 0),
@@ -396,14 +420,14 @@ void main() {
       ])
       .emit();
     this.emitter2
-      .setRate(new Rate(new Span(4, 16), new Span(0.01)))
+      .setRate(new Rate(new Span(2, 8), new Span(0.01)))
       .setInitializers([
         new Position(new PointZone(0, 0)),
         new Mass(1),
         new Radius(3, 6),
         new Life(2),
         new Body(createSprite2()),
-        new RadialVelocity(30, new Vector3D(0, 1, 0), 180),
+        new RadialVelocity(60, new Vector3D(0, 1, 0), 180),
       ])
       .setBehaviours([
         new Alpha(1, 0),
@@ -430,13 +454,13 @@ void main() {
       data = this.analyser.getAverageFrequency()
       this.sphere.material.uniforms.uNoiseStrength.value = data / 256;
       this.sphere.material.uniforms.uTime.value = elapsedTime;
-      this.sphere.material.uniforms.uColorFrequency.value = data ;
+
     }
 
     delta < 5 / 60 && this.system.update();
     this.tha += Math.PI / 150;
     let p = 100 * Math.sin(2 * this.tha);
-    this.emitter.position.x = 50 + p * Math.cos(this.tha);
+    this.emitter.position.x = 100 + p * Math.cos(this.tha);
     this.emitter.position.y = p * Math.sin(this.tha);
     this.emitter.position.z = (p * Math.tan(this.tha)) / 2;
     // reverse emitter direction for emitter2
@@ -446,9 +470,8 @@ void main() {
     this.ctha += 0.016;
     // this.r = 300
     // set de emitter rate depending on the data
-    this.emitter.setRate(new Rate(new Span(0, data / 10), new Span(0.01)))
-    this.emitter2.setRate(new Rate(new Span(0, data / 10), new Span(0.01)))
-
+    this.emitter.setRate(new Rate(new Span(0, data / 11), new Span(0.01)))
+    this.emitter2.setRate(new Rate(new Span(0, data / 15), new Span(0.01)))
 
   }
 }
